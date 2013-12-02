@@ -57,7 +57,7 @@ int main(void) {
   while (1) {
 	  //sleep_cpu();
 	  //uart.write("U");
-	  //_delay_ms(1000);
+	  _delay_ms(10);
 	  if(uart.rxbuflen()) {
 		  uart.write(uart.peekRX(0));
 		  uart.resetReceiveBuffer();
