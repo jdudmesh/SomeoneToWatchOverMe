@@ -1,0 +1,1 @@
+./ArduinoISP_patched/avrdude/RELEASE_5_11_0/avrdude -C/Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/etc/avrdude.conf -pattiny85 -carduino -P/dev/tty.usbmodem1d11 -b 19200 -Uflash:w:/Users/john/Documents/workspace-kepler/SomeoneToWatchOverMe/Release/SomeoneToWatchOverMe.hex:a

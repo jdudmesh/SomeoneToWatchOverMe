@@ -4,7 +4,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
-#include "UART.h"
+#include "GPRS.h"
 
 // Definitions
 #define INT1 1
@@ -34,7 +34,7 @@ void initIO(void)
 
 	cli(); // disable interrupts
 
-	uart.init();
+	gprs.init();
 
 	// initialize timer1 to call the interrupt service routine at roughly 1Hz
 	//TCCR1 = (1<<CTC1) | (1<< CS13) | (1<< CS12) | (1<< CS11) | (1<< CS10);
@@ -53,23 +53,28 @@ int main(void) {
 
   //set_sleep_mode(SLEEP_MODE_IDLE);
   //sleep_enable();
-
+  gprs.resetReceiveBuffer();
   while (1) {
-	  /*
-	  uint8_t buflen = uart.rxbuflen();
+	  uint8_t buflen = gprs.rxbuflen();
 	  if(buflen >= 2) {
-
-		  if(uart.peekRX(buflen - 2) == '\r' && uart.peekRX(buflen - 1) == '\n') {
-			  uart.write(uart.rxbuf());
-			  uart.resetReceiveBuffer();
-		  }
+		  if(gprs.peekRX(buflen - 2) == 0x0D && gprs.peekRX(buflen - 1) == 0x0A) {
+			  gprs.write('1');
+			  gprs.resetReceiveBuffer();
+	  	  }
 	  }
-	*/
+	  /*
+	  if(uart.peekRX(buflen - 2) == 0x0D && uart.peekRX(buflen - 1) == 0x0A) {
+		  uart.write(uart.rxbuf());
+		  uart.resetReceiveBuffer();
+	  }
+	  */
+	  /*
 	  if(uart.peekRX(0)) {
 		  uart.write(uart.peekRX(0));
 		  uart.resetReceiveBuffer();
 	  }
-	  _delay_ms(500);
+	  */
+	  _delay_ms(50);
 
 
   }
@@ -108,3 +113,23 @@ ISR(TIMER1_COMPA_vect) {
 
 }
 
+ISR(TIMER0_COMPA_vect) {
+	// timer 0 is the baud rate timer
+
+	if(gprs.isTransmitting()) {
+		gprs.txTick();
+	}
+
+	if(gprs.isReceiving()) {
+		gprs.rxTick();
+	}
+}
+
+ISR(INT0_vect) {
+	PINB = (1<<PIN0);
+	_delay_us(10);
+	PINB = (1<<PIN0);
+	if(!gprs.isReceiving()) {
+		gprs.startReceiving();
+	}
+}

@@ -12,30 +12,6 @@
 
 #include "UART.h"
 
-UART uart;
-
-uint8_t mask = 0;
-
-ISR(TIMER0_COMPA_vect) {
-	// timer 0 is the baud rate timer
-
-	if(uart.isTransmitting()) {
-		uart.txTick();
-	}
-
-	if(uart.isReceiving()) {
-		uart.rxTick();
-	}
-}
-
-ISR(PCINT0_vect) {
-	sei();
-	if(!uart.isReceiving()) {
-		uart.startReceiving();
-	}
-}
-
-
 UART::UART() : _txbufptr(NULL), _txbuflen(0), _rxbuflen(0), _txbitstate(BIT_TX_IDLE), _rxbitstate(BIT_RX_IDLE), _rx_idle_count(0) {
 
 }
@@ -49,8 +25,10 @@ void UART::init() {
 	DDRB |= (1<<TX_PIN); // set TX pin out
 	DDRB &= ~(1<<RX_PIN); // set RX pin in
 
-	GIMSK = (1 << PCIE); // enable pin change interrupts
-	PCMSK |= (1<<RX_PC_INTERRUPT); // set pin change interrupt enable on RX
+	//GIMSK = (1 << PCIE); // enable pin change interrupts
+	//PCMSK |= (1<<RX_PC_INTERRUPT); // set pin change interrupt enable on RX
+	MCUCR |= ((1<<ISC01) | (0<<ISC00));
+	GIMSK = (1 << INT0);
 
 	// initialize timer0 to run at 9600 baud
 	TCCR0A = (1<<WGM01); // output compare
@@ -156,7 +134,7 @@ void UART::rxTick() {
 
 }
 
-void UART::write(uint8_t data) {
+void UART::write(char data) {
 	_txbuf[0] = data;
 	_txbuflen = 1;
 	_txbufptr = _txbuf;
@@ -164,9 +142,9 @@ void UART::write(uint8_t data) {
 	startTimer();
 }
 
-void UART::write(uint8_t* pData) {
-	strncpy((char*)_txbuf, (const char*)pData, BUFFERSIZE);
-	_txbuflen = strlen((const char*)pData);
+void UART::write(const char* pData) {
+	strncpy(_txbuf, pData, BUFFERSIZE);
+	_txbuflen = strlen(pData);
 	_txbufptr = _txbuf;
 	_txbitstate = BIT_TX_START_BIT;
 	startTimer();
