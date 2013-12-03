@@ -36,8 +36,8 @@
 #define AT_SET_TIME "AT+CCLK=\"%s\"\r\n" //"13/11/25,18:38:00+00" set time
 
 #define RX_PC_INTERRUPT PCINT3
-#define RX_PIN 3
-#define TX_PIN 4
+#define RX_PIN DDB3
+#define TX_PIN DDB4
 #define MODEM_POWER_BUTTON 9
 
 #define MARK 0
@@ -53,13 +53,15 @@ public:
 	void init();
 
 	void write(uint8_t data);
-	void write(const char* pData);
+	void write(uint8_t* pData);
 
-	inline uint8_t isTransmitting() { return _txbufptr ? 1 : 0; };
-	inline uint8_t isReceiving() { return _rxbitstate == BIT_RX_IDLE ? 0 : 1; };
-	inline void startReceiving() { _rxbitstate = BIT_RX_START_BIT; };
-	inline uint8_t rxbuflen() { return _rxbuflen; };
-	inline uint8_t peekRX(uint8_t idx) { return _rxbuf[0]; };
+	inline uint8_t isTransmitting() { return _txbitstate == BIT_TX_IDLE ? 0 : 1; }
+	inline uint8_t isReceiving() { return _rxbitstate == BIT_RX_IDLE ? 0 : 1; }
+	inline void startReceiving() { _rxbitstate = BIT_RX_BIT_0; txTick(); startTimer(); }
+	inline uint8_t rxbuflen() { return _rxbuflen; }
+	inline uint8_t peekRX(uint8_t idx) { return _rxbuf[0]; }
+
+	inline uint8_t* rxbuf() { return _rxbuf; }
 
 	void txTick();
 	void rxTick();
@@ -67,6 +69,9 @@ public:
 	void resetReceiveBuffer();
 
 private:
+
+	inline void startTimer(){ TCCR0B = (1<<CS01); }; // prescaler /8
+	inline void stopTimer() { TCCR0B = 0; };
 
 	inline void setMark() { PORTB &= ~(1 << TX_PIN); };
 	inline void setSpace() { PORTB |= (1 << TX_PIN); };
@@ -106,6 +111,7 @@ private:
 
 	uint8_t _txbuf[BUFFERSIZE];
 	uint8_t _rxbuf[BUFFERSIZE];
+	uint8_t _rx_idle_count;
 
 };
 

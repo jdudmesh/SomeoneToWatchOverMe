@@ -34,7 +34,7 @@
 								<option id="de.innot.avreclipse.compiler.option.optimize.809824186" name="Optimization Level" superClass="de.innot.avreclipse.compiler.option.optimize" value="de.innot.avreclipse.compiler.optimize.size" valueType="enumerated"/>
 								<option id="de.innot.avreclipse.compiler.option.incpath.9139791" name="Include Paths (-I)" superClass="de.innot.avreclipse.compiler.option.incpath" valueType="includePath"/>
 								<option id="de.innot.avreclipse.compiler.option.optimize.other.970007382" name="Other Optimization Flags" superClass="de.innot.avreclipse.compiler.option.optimize.other" value="" valueType="string"/>
-								<option id="de.innot.avreclipse.compiler.option.otherflags.1294685072" superClass="de.innot.avreclipse.compiler.option.otherflags" value="-fno-exceptions -ffunction-sections -fdata-sections" valueType="string"/>
+								<option id="de.innot.avreclipse.compiler.option.otherflags.1294685072" name="Other flags" superClass="de.innot.avreclipse.compiler.option.otherflags" value="-fno-exceptions -ffunction-sections -fdata-sections" valueType="string"/>
 								<inputType id="de.innot.avreclipse.compiler.winavr.input.1050775745" name="C Source Files" superClass="de.innot.avreclipse.compiler.winavr.input"/>
 							</tool>
 							<tool id="de.innot.avreclipse.tool.cppcompiler.app.release.169361443" name="AVR C++ Compiler" superClass="de.innot.avreclipse.tool.cppcompiler.app.release">
@@ -62,6 +62,9 @@
 							<tool id="de.innot.avreclipse.tool.avrdude.app.release.1224349052" name="AVRDude" superClass="de.innot.avreclipse.tool.avrdude.app.release"/>
 						</toolChain>
 					</folderInfo>
+					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src"/>
+					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

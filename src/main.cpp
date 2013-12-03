@@ -37,9 +37,9 @@ void initIO(void)
 	uart.init();
 
 	// initialize timer1 to call the interrupt service routine at roughly 1Hz
-	TCCR1 = (1<<CTC1) | (1<< CS13) | (1<< CS12) | (1<< CS11) | (1<< CS10);
-	OCR1A = 255;
-	TIMSK |= (1 << OCIE1A);
+	//TCCR1 = (1<<CTC1) | (1<< CS13) | (1<< CS12) | (1<< CS11) | (1<< CS10);
+	//OCR1A = 255;
+	//TIMSK |= (1 << OCIE1A);
 
 	sei(); // enable interrupts
 
@@ -53,15 +53,25 @@ int main(void) {
 
   //set_sleep_mode(SLEEP_MODE_IDLE);
   //sleep_enable();
-  uart.write("START\r\n");
+
   while (1) {
-	  //sleep_cpu();
-	  //uart.write("U");
-	  _delay_ms(10);
-	  if(uart.rxbuflen()) {
+	  /*
+	  uint8_t buflen = uart.rxbuflen();
+	  if(buflen >= 2) {
+
+		  if(uart.peekRX(buflen - 2) == '\r' && uart.peekRX(buflen - 1) == '\n') {
+			  uart.write(uart.rxbuf());
+			  uart.resetReceiveBuffer();
+		  }
+	  }
+	*/
+	  if(uart.peekRX(0)) {
 		  uart.write(uart.peekRX(0));
 		  uart.resetReceiveBuffer();
 	  }
+	  _delay_ms(500);
+
+
   }
 
   return 0; // never reached
@@ -77,6 +87,10 @@ ISR(ANA_COMP_vect) {
 }
 
 ISR(TIMER1_COMPA_vect) {
+
+	//allow nested interrupts
+	sei();
+
 	// timer 1 monitors the appliance state and tiggers status updates
 	unsigned char currentState = numTicks == 0 ? STOPPED : RUNNING;
 	if(currentState != lastState) {

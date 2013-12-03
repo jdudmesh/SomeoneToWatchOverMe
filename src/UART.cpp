@@ -24,21 +24,19 @@ ISR(TIMER0_COMPA_vect) {
 	}
 
 	if(uart.isReceiving()) {
-		//PINB = (1<<PIN0);
-		//_delay_us(10);
-		//PINB = (1<<PIN0);
 		uart.rxTick();
 	}
 }
 
 ISR(PCINT0_vect) {
+	sei();
 	if(!uart.isReceiving()) {
 		uart.startReceiving();
 	}
 }
 
 
-UART::UART() : _txbufptr(NULL), _txbuflen(0), _rxbuflen(0), _txbitstate(BIT_TX_IDLE), _rxbitstate(BIT_RX_IDLE) {
+UART::UART() : _txbufptr(NULL), _txbuflen(0), _rxbuflen(0), _txbitstate(BIT_TX_IDLE), _rxbitstate(BIT_RX_IDLE), _rx_idle_count(0) {
 
 }
 
@@ -56,7 +54,6 @@ void UART::init() {
 
 	// initialize timer0 to run at 9600 baud
 	TCCR0A = (1<<WGM01); // output compare
-	TCCR0B = (1<<CS01); // prescaler /8
 	OCR0A = 105;
 	TIMSK = (1<<OCIE0A);
 
@@ -98,6 +95,7 @@ void UART::txTick() {
 		if(_txbuflen == 0) {
 			_txbufptr = 0;
 			_txbitstate = BIT_TX_IDLE;
+			stopTimer();
 		}
 		else {
 			_txbufptr++;
@@ -111,15 +109,20 @@ void UART::txTick() {
 
 void UART::rxTick() {
 
+	PINB = (1<<PIN0);
+	_delay_us(10);
+	PINB = (1<<PIN0);
+
 	switch(_rxbitstate) {
 	case BIT_RX_IDLE:
+
+		//if(++_rx_idle_count > 2) {
+		//	stopTimer();
+		//}
 		break;
 
 	case BIT_RX_START_BIT:
-		PINB = (1<<PIN0);
-		_delay_us(10);
-		PINB = (1<<PIN0);
-
+		_rx_idle_count = 0;
 		_rxbuf[_rxbuflen] = (uint8_t)0;
 		_rxbitstate = BIT_RX_BIT_0;
 		break;
@@ -132,22 +135,18 @@ void UART::rxTick() {
 	case BIT_RX_BIT_5:
 	case BIT_RX_BIT_6:
 	case BIT_RX_BIT_7:
-		//PINB = (1<<PIN0);
-		_rxbuf[_rxbuflen] <<= 1;
-		_rxbuf[_rxbuflen] |= ((PORTB & PIN3) >> PIN3);
+		_rxbuf[_rxbuflen] >>= 1;
+		_rxbuf[_rxbuflen] |= bit_is_set(PINB, RX_PIN) ? 0x80 : 0;
 		_rxbitstate = static_cast<BIT_RX_ENUM>(static_cast<int>(_rxbitstate) + 1);
 		break;
 
 	case BIT_RX_BIT_STOP:
-		//PINB = (1<<PIN0);
 		_rxbuflen++;
 		if(_rxbuflen == BUFFERSIZE - 1) {
-			PINB = (1<<PIN0);
-			_delay_us(10);
-			PINB = (1<<PIN0);
 			_rxbuflen = 0;
 		}
 		_rxbitstate = BIT_RX_IDLE;
+		stopTimer();
 		break;
 
 	default:
@@ -162,15 +161,18 @@ void UART::write(uint8_t data) {
 	_txbuflen = 1;
 	_txbufptr = _txbuf;
 	_txbitstate = BIT_TX_START_BIT;
+	startTimer();
 }
 
-void UART::write(const char* pData) {
-	strncpy((char*)_txbuf, pData, BUFFERSIZE);
-	_txbuflen = strlen(pData);
+void UART::write(uint8_t* pData) {
+	strncpy((char*)_txbuf, (const char*)pData, BUFFERSIZE);
+	_txbuflen = strlen((const char*)pData);
 	_txbufptr = _txbuf;
 	_txbitstate = BIT_TX_START_BIT;
+	startTimer();
 }
 
 void UART::resetReceiveBuffer() {
 	_rxbuflen = 0;
+	memset(_rxbuf, 0, sizeof(_rxbuf));
 }
