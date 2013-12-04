@@ -87,10 +87,6 @@ void UART::txTick() {
 
 void UART::rxTick() {
 
-	PINB = (1<<PIN0);
-	_delay_us(10);
-	PINB = (1<<PIN0);
-
 	switch(_rxbitstate) {
 	case BIT_RX_IDLE:
 

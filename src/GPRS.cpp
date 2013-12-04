@@ -14,21 +14,31 @@
 
 GPRS gprs;
 
+GPRS::GPRS() {
+	memset(_imei, 0, sizeof(_imei));
+}
+
+BOOL GPRS::turnEchoOff() {
+
+	BOOL ok = 0;
+
+	resetReceiveBuffer();
+
+	write(AT_ECHO_OFF);
+	ok = waitForResponse("OK\r\n");
+
+	return ok;
+
+}
+
 BOOL GPRS::getSimStatus() {
 
 	BOOL ok = 0;
 
-	write(AT_SIM_CHECK);
-	if(waitForResponse()) {
-		if(_rxbuf[0] == '+' && strncmp(&_rxbuf[7], "READY", 5) == 0) {
-			ok = 1;
-			resetReceiveBuffer();
-		}
+	resetReceiveBuffer();
 
-		if(!waitForOk()) {
-			ok = 0;
-		}
-	}
+	write(AT_SIM_CHECK);
+	ok = waitForResponse("\x0D\x0A+CPIN: READY\x0D\x0A\x0D\x0AOK\x0D\x0A"); //\r\n\r\nOK\r\n
 
 	return ok;
 }
@@ -37,15 +47,13 @@ BOOL GPRS::getNetworkStatus() {
 
 	BOOL ok = 0;
 
+	resetReceiveBuffer();
+
 	write(AT_NETWORK_STATUS);
-	if(waitForResponse()) {
-		if(_rxbuf[0] == '+' && _rxbuf[10] == '1') {
-			ok = 1;
-		}
-		resetReceiveBuffer();
 
-		if(waitForOk()) {
-
+	if(waitForOk()) {
+		if(strncmp(_txbuf, "\r\n+CGREG", 8)) {
+			ok = _txbuf[10] == '1' ? 1 : 0;
 		}
 	}
 
@@ -56,16 +64,16 @@ uint8_t GPRS::getSignalQuality() {
 
 	uint8_t sig = 0;
 
+	resetReceiveBuffer();
+
 	write(AT_SIGNAL_QUALITY);
-	if(waitForResponse()) {
-		if(strncmp(_rxbuf, "+CSQ", 4) == 0) {
+
+	if(waitForOk()) {
+		if(strncmp(_rxbuf, "\r\n+CSQ", 6) == 0) {
 			sig = _rxbuf[6];
 		}
 		resetReceiveBuffer();
 
-		if(waitForOk()) {
-
-		}
 	}
 
 	return sig;
@@ -77,14 +85,13 @@ char* GPRS::getIMEI() {
 
 	memset(imei, 0, sizeof(imei));
 
+	resetReceiveBuffer();
+
 	write(AT_IMEI_GET);
-	if(waitForResponse()) {
+
+	if(waitForOk()) {
 		strncpy(imei, _rxbuf, 15);
 		resetReceiveBuffer();
-
-		if(waitForOk()) {
-
-		}
 	}
 
 	return imei;
@@ -103,23 +110,21 @@ BOOL GPRS::sendStatusUpdate() {
 	return 1;
 }
 
-BOOL GPRS::waitForResponse(uint8_t timeout) {
+BOOL GPRS::waitForResponse(const char* response, uint8_t timeout) {
 
 	BOOL ok = 0;
 	uint8_t ticks = 0;
 	while (1) {
-		if(_rxbuflen == 2 && _rxbuf[0] == 0x0D && _rxbuf[1] == 0x0A) {
-			// blank line - skip it
-			resetReceiveBuffer();
+		if(strncmp(_rxbuf, response, strlen(response)) == 0) {
+			PINB = (1<<PIN0);
+			_delay_ms(10);
+			PINB = (1<<PIN0);
+			ok = 1;
+			break;
 		}
-		else if(_rxbuflen > 2) {
-			// check for line end
-			if(_rxbuf[_rxbuflen - 2] == 0x0D && _rxbuf[_rxbuflen - 1] == 0x0A) {
-				ok = 1;
-				break;
-			}
+		else {
+			_delay_ms(25);
 		}
-		_delay_ms(50);
 		// timeout
 		if(++ticks > timeout) {
 			break;
@@ -128,14 +133,14 @@ BOOL GPRS::waitForResponse(uint8_t timeout) {
 	return ok;
 }
 
-BOOL GPRS::waitForOk() {
-	BOOL ok = 0;
-	if(waitForResponse()) {
-		if(_rxbuf[0] == 'O' && _rxbuf[1] == 'K') {
-			ok = 1;
-		}
+BOOL GPRS::waitForOk(uint8_t timeout) {
+	uint8_t ok = 0;
+	if(		_rxbuf[_rxbuflen - 4] == 'O' &&
+			_rxbuf[_rxbuflen - 3] == 'K' &&
+			_rxbuf[_rxbuflen - 2] == '\r' &&
+			_rxbuf[_rxbuflen - 1] == '\n') {
+		ok = 1;
 	}
-	resetReceiveBuffer();
 	return ok;
 }
 

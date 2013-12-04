@@ -29,10 +29,10 @@ unsigned char test = LOW;
 int action = 0;
 int done = 0;
 
-void initIO(void)
-{
+void initIO(void) {
 
-	cli(); // disable interrupts
+	cli();
+	// disable interrupts
 
 	gprs.init();
 
@@ -41,45 +41,77 @@ void initIO(void)
 	//OCR1A = 255;
 	//TIMSK |= (1 << OCIE1A);
 
-	sei(); // enable interrupts
+	sei();
+	// enable interrupts
 
 	// just testing
-	DDRB |= (1<<DDB0); // set test pin out
+	DDRB |= (1 << DDB0 | 1 << DDB3); // set test pin out
 }
 
 int main(void) {
 
-  initIO();
+	initIO();
 
-  //set_sleep_mode(SLEEP_MODE_IDLE);
-  //sleep_enable();
-  gprs.resetReceiveBuffer();
-  while (1) {
-	  uint8_t buflen = gprs.rxbuflen();
-	  if(buflen >= 2) {
-		  if(gprs.peekRX(buflen - 2) == 0x0D && gprs.peekRX(buflen - 1) == 0x0A) {
-			  gprs.write('1');
-			  gprs.resetReceiveBuffer();
-	  	  }
-	  }
-	  /*
-	  if(uart.peekRX(buflen - 2) == 0x0D && uart.peekRX(buflen - 1) == 0x0A) {
-		  uart.write(uart.rxbuf());
-		  uart.resetReceiveBuffer();
-	  }
-	  */
-	  /*
-	  if(uart.peekRX(0)) {
-		  uart.write(uart.peekRX(0));
-		  uart.resetReceiveBuffer();
-	  }
-	  */
-	  _delay_ms(50);
+	// turn on the modem
+	PORTB |= (1 << PIN3);
 
+	gprs.turnEchoOff();
 
-  }
+	while (1) {
 
-  return 0; // never reached
+		_delay_ms(1000);
+
+		uint8_t status = 3;
+		if (gprs.getSimStatus()) {
+			status--;
+			if (gprs.getNetworkStatus()) {
+				status--;
+				if (gprs.getSignalQuality() > 3) {
+					status--;
+					break;
+				}
+			}
+		}
+
+		switch (status) {
+		case 0:
+			PORTB |= (1 << PIN0);
+			break;
+		case 1:
+			PORTB |= (1 << PIN0);
+			_delay_ms(250);
+			PORTB &= ~(1 << PIN0);
+			_delay_ms(250);
+			break;
+		case 2:
+			PORTB |= (1 << PIN0);
+			_delay_ms(250);
+			PORTB &= ~(1 << PIN0);
+			_delay_ms(250);
+			PORTB |= (1 << PIN0);
+			_delay_ms(250);
+			PORTB &= ~(1 << PIN0);
+			_delay_ms(250);
+			break;
+		case 3:
+			PORTB |= (1 << PIN0);
+			_delay_ms(250);
+			PORTB &= ~(1 << PIN0);
+			_delay_ms(250);
+			PORTB |= (1 << PIN0);
+			_delay_ms(250);
+			PORTB &= ~(1 << PIN0);
+			_delay_ms(250);
+			PORTB |= (1 << PIN0);
+			_delay_ms(250);
+			PORTB &= ~(1 << PIN0);
+			_delay_ms(250);
+			break;
+		}
+
+	}
+
+	return 0; // never reached
 }
 
 void sendStateUpdate(unsigned char currentState) {
@@ -98,11 +130,10 @@ ISR(TIMER1_COMPA_vect) {
 
 	// timer 1 monitors the appliance state and tiggers status updates
 	unsigned char currentState = numTicks == 0 ? STOPPED : RUNNING;
-	if(currentState != lastState) {
-		if(currentState == STOPPED) {
+	if (currentState != lastState) {
+		if (currentState == STOPPED) {
 			PORTB &= ~(1 << STATUS_PIN);
-		}
-		else {
+		} else {
 			PORTB |= (1 << STATUS_PIN);
 		}
 		sendStateUpdate(currentState);
@@ -116,20 +147,17 @@ ISR(TIMER1_COMPA_vect) {
 ISR(TIMER0_COMPA_vect) {
 	// timer 0 is the baud rate timer
 
-	if(gprs.isTransmitting()) {
+	if (gprs.isTransmitting()) {
 		gprs.txTick();
 	}
 
-	if(gprs.isReceiving()) {
+	if (gprs.isReceiving()) {
 		gprs.rxTick();
 	}
 }
 
 ISR(INT0_vect) {
-	PINB = (1<<PIN0);
-	_delay_us(10);
-	PINB = (1<<PIN0);
-	if(!gprs.isReceiving()) {
+	if (!gprs.isReceiving()) {
 		gprs.startReceiving();
 	}
 }

@@ -13,6 +13,7 @@
 
 typedef uint8_t BOOL;
 
+#define AT_ECHO_OFF "ATE0\r\n" // turn off echo
 #define AT_SIM_CHECK "AT+CPIN?\r\n" // check SIM card
 #define AT_NETWORK_STATUS "AT+CGREG?" // check network status
 #define AT_SIGNAL_QUALITY "AT+CSQ" // get signal quality
@@ -44,6 +45,9 @@ class GPRS : public UART {
 
 public:
 
+	GPRS();
+
+	BOOL turnEchoOff();
 	BOOL getSimStatus();
 	BOOL getNetworkStatus();
 	uint8_t getSignalQuality();
@@ -53,8 +57,10 @@ public:
 	BOOL sendStatusUpdate();
 
 private:
-	BOOL waitForResponse(uint8_t timeout=20);
-	BOOL waitForOk();
+	BOOL waitForResponse(const char* response, uint8_t timeout=20);
+	BOOL waitForOk(uint8_t timeout=20);
+
+	char _imei[16];
 };
 
 extern GPRS gprs;
