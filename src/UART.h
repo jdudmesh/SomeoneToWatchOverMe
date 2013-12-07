@@ -8,10 +8,11 @@
 #ifndef UART_H_
 #define UART_H_
 
-#define RX_PC_INTERRUPT PCINT3
-#define RX_PIN DDB2
-#define TX_PIN DDB4
+#define RX_PIN PIN2
+#define TX_PIN PIN4
 #define MODEM_POWER_BUTTON 9
+
+#define STATUS_PIN PIN3
 
 #define MARK 0
 #define SPACE 1
@@ -41,7 +42,19 @@ public:
 
 	void resetReceiveBuffer();
 
+	inline void statusPinOn() { PORTB |= (1 << STATUS_PIN); };
+	inline void statusPinOff() { PORTB &= ~(1 << STATUS_PIN); };
+	inline void statusPinFlash(uint8_t count) {
+		for(uint8_t i = 0; i < count; i++) {
+			statusPinOn();
+			_delay_ms(250);
+			statusPinOff();
+			_delay_ms(250);
+		}
+	}
+
 protected:
+
 
 	inline void startTimer(){ TCCR0B = (1<<CS01); }; // prescaler /8
 	inline void stopTimer() { TCCR0B = 0; };

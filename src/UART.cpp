@@ -9,6 +9,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <string.h>
+#include <avr/pgmspace.h>
 
 #include "UART.h"
 
@@ -23,6 +24,7 @@ UART::~UART() {
 void UART::init() {
 
 	DDRB |= (1<<TX_PIN); // set TX pin out
+	DDRB |= (1<<STATUS_PIN); // set status pin out
 	DDRB &= ~(1<<RX_PIN); // set RX pin in
 
 	//GIMSK = (1 << PCIE); // enable pin change interrupts
@@ -38,6 +40,8 @@ void UART::init() {
 }
 
 void UART::txTick() {
+
+	//PINB = (1<<STATUS_PIN);
 
 	switch(_txbitstate) {
 	case BIT_TX_IDLE:
@@ -87,6 +91,8 @@ void UART::txTick() {
 
 void UART::rxTick() {
 
+	//PINB = (1<<STATUS_PIN);
+
 	switch(_rxbitstate) {
 	case BIT_RX_IDLE:
 
@@ -131,19 +137,39 @@ void UART::rxTick() {
 }
 
 void UART::write(char data) {
+
+	resetReceiveBuffer();
+
 	_txbuf[0] = data;
 	_txbuflen = 1;
 	_txbufptr = _txbuf;
 	_txbitstate = BIT_TX_START_BIT;
+
 	startTimer();
+
+	while(_txbitstate != BIT_TX_IDLE) {
+		_delay_us(25);
+	}
+
 }
 
 void UART::write(const char* pData) {
-	strncpy(_txbuf, pData, BUFFERSIZE);
+
+	resetReceiveBuffer();
+
+	memset(_txbuf, 0, sizeof(_txbuf));
+
+	strcpy_P(_txbuf, (const char *)pgm_read_word(&pData[0]));
+
 	_txbuflen = strlen(pData);
 	_txbufptr = _txbuf;
 	_txbitstate = BIT_TX_START_BIT;
+
 	startTimer();
+
+	while(_txbitstate != BIT_TX_IDLE) {
+		_delay_us(25);
+	}
 }
 
 void UART::resetReceiveBuffer() {
