@@ -7,10 +7,6 @@
 
 #include "GPRS.h"
 
-#define STATE_DEVICE_POWER_ON 1
-#define APPLIANCE_OFF 2
-#define APPLIANCE_ON 3
-
 uint8_t lastState = APPLIANCE_OFF;
 long numTicks = 0;
 
@@ -38,10 +34,6 @@ void initIO(void) {
 int main(void) {
 
 	initIO();
-
-	while(!gprs.turnEchoOff()){
-		_delay_ms(500);
-	}
 
 	gprs.sendStateUpdate(STATE_DEVICE_POWER_ON);
 

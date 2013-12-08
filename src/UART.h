@@ -17,7 +17,7 @@
 #define MARK 0
 #define SPACE 1
 
-#define BUFFERSIZE 32
+#define BUFFERSIZE 40
 
 class UART {
 public:
@@ -27,7 +27,8 @@ public:
 	void init();
 
 	void write(char data);
-	void write(const char* pData);
+	void write(const char *pData);
+	void write(int stringTableOffset);
 
 	inline uint8_t isTransmitting() { return _txbitstate == BIT_TX_IDLE ? 0 : 1; }
 	inline uint8_t isReceiving() { return _rxbitstate == BIT_RX_IDLE ? 0 : 1; }

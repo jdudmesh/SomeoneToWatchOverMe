@@ -12,6 +12,7 @@
 #include <avr/pgmspace.h>
 
 #include "UART.h"
+#include "StringTable.h"
 
 UART::UART() : _txbufptr(NULL), _txbuflen(0), _rxbuflen(0), _txbitstate(BIT_TX_IDLE), _rxbitstate(BIT_RX_IDLE), _rx_idle_count(0) {
 
@@ -153,15 +154,15 @@ void UART::write(char data) {
 
 }
 
-void UART::write(const char* pData) {
+void UART::write(const char *pData) {
 
 	resetReceiveBuffer();
 
 	memset(_txbuf, 0, sizeof(_txbuf));
 
-	strcpy_P(_txbuf, (const char *)pgm_read_word(&pData[0]));
+	strcpy(_txbuf, pData);
 
-	_txbuflen = strlen(pData);
+	_txbuflen = strlen(_txbuf);
 	_txbufptr = _txbuf;
 	_txbitstate = BIT_TX_START_BIT;
 
@@ -170,6 +171,27 @@ void UART::write(const char* pData) {
 	while(_txbitstate != BIT_TX_IDLE) {
 		_delay_us(25);
 	}
+
+}
+
+void UART::write(int stringTableOffset) {
+
+	resetReceiveBuffer();
+
+	memset(_txbuf, 0, sizeof(_txbuf));
+
+	strcpy_P(_txbuf, string_table[stringTableOffset]);
+
+	_txbuflen = strlen(_txbuf);
+	_txbufptr = _txbuf;
+	_txbitstate = BIT_TX_START_BIT;
+
+	startTimer();
+
+	while(_txbitstate != BIT_TX_IDLE) {
+		_delay_us(25);
+	}
+
 }
 
 void UART::resetReceiveBuffer() {

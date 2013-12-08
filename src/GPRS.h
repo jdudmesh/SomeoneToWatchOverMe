@@ -11,6 +11,12 @@
 
 #include "UART.h"
 
+#define STATE_DEVICE_POWER_ON 1
+#define APPLIANCE_OFF 2
+#define APPLIANCE_ON 3
+#define STATE_DEVICE_PING 4
+
+
 typedef uint8_t BOOL;
 
 class GPRS : public UART {
@@ -19,6 +25,7 @@ public:
 
 	GPRS();
 
+	BOOL resetModem();
 	BOOL turnEchoOff();
 	BOOL getSimStatus();
 	BOOL getNetworkStatus();
@@ -32,7 +39,7 @@ public:
 	uint8_t sendStateUpdate(unsigned char currentState);
 
 private:
-	BOOL waitForResponse(const char* response, uint8_t timeout=200);
+	BOOL waitForResponse(int stringTableOffset, uint8_t timeout=200);
 	BOOL waitForOk(uint8_t timeout=20);
 	BOOL waitForTrailingOk(uint8_t timeout=20);
 
