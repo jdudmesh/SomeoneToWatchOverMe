@@ -23,7 +23,7 @@ GPRS::GPRS() {
 
 BOOL GPRS::resetModem() {
 	write(AT_RESET);
-	return waitForOk();
+	return waitForTrailingOk();
 }
 
 BOOL GPRS::turnEchoOff() {
@@ -103,7 +103,7 @@ BOOL GPRS::waitForResponse(int stringTableOffset, uint8_t timeout) {
 			break;
 		}
 		else {
-			_delay_ms(25);
+			_delay_ms(100);
 		}
 		// timeout
 		if(++ticks > timeout) {
@@ -132,7 +132,7 @@ BOOL GPRS::waitForTrailingOk(uint8_t timeout) {
 			break;
 		}
 		else {
-			_delay_ms(25);
+			_delay_ms(100);
 		}
 		// timeout
 		if(++ticks > timeout) {
@@ -173,7 +173,7 @@ uint8_t GPRS::verifyConnectivity() {
 				status--;
 			}
 			else {
-				_delay_ms(1000);
+				_delay_ms(5000);
 			}
 			break;
 		case 2:
@@ -253,6 +253,7 @@ BOOL GPRS::setUpConnection() {
 				ok = waitForOk();
 				if(!ok) return ok;
 
+				_delay_ms(1000);
 				ticks++;
 
 			}
@@ -324,21 +325,23 @@ uint8_t GPRS::sendStateUpdate(unsigned char currentState) {
 				state++;
 
 				write(AT_HTTP_GET);
-				ok = waitForResponse(RESPONSE_HTTP_GET, 200);
-				if(ok && _rxbuf[22] == '2' && _rxbuf[23] == '0' && _rxbuf[24] == '0') {
-					ok = 1;
-				}
-				else {
-					ok = 0;
-				}
+				if(waitForOk()) {
+					ok = waitForResponse(RESPONSE_HTTP_GET, 255);
+					if(ok && _rxbuf[22] == '2' && _rxbuf[23] == '0' && _rxbuf[24] == '0') {
+						ok = 1;
+					}
+					else {
+						ok = 0;
+					}
 
-				if(ok) {
-					state++;
-
-					write(AT_HTTP_READ);
-					ok = waitForResponse(RESPONSE_HTTP_READ);
-					if(ok && _rxbuf[15] == '1') {
+					if(ok) {
 						state++;
+
+						write(AT_HTTP_READ);
+						ok = waitForResponse(RESPONSE_HTTP_READ);
+						if(ok && _rxbuf[15] == '1') {
+							state++;
+						}
 					}
 				}
 
